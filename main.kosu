@@ -1,6 +1,24 @@
 fn main(argc: s32, argv: **s8) s32 {
-
-    const s = sizeof(Lexer.lexer);
-    discard Cstd::Io.printf(@stringlptr("sizeof json = %lu\n"), s );
+    const argv1 = argv + 1;
+    const file_opt = Fs::OpenOption.new() |> Fs::OpenOption.create(false) |> Fs::OpenOption.read_only(true) |> Fs::OpenOption.c_open( *argv1 );
+    const file = Option.get(file_opt);
+    const content = Fs::File.read_all(file);
+    discard content |> String.show();
+    var continue = true;
+    const lexer = Lexer.new(content);
+    discard while (continue) {
+        // discard Cstd::Io.printf_s("loop\n");
+        var token = Lexer.next_token(&lexer);
+        discard switch (token) {
+            .none => { continue = false; $ empty }
+            .some(t) => {
+                discard Lexer.show_token(t);
+                $ empty
+            }
+        };
+        discard Lexer.advance(&lexer);
+        $ empty
+    };
+    discard Fs::File.close(file);
     $ 0
 }

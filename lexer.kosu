@@ -22,7 +22,54 @@ enum token {
     jtstring(String.string),
     number(String.string),
     eof
-} 
+}
+
+fn show_token(t: token) = switch (t) {
+    .lbrack => { 
+        discard Cstd::Io.printf_s("{");
+        $ empty
+    }
+    .rbrack => {
+        discard Cstd::Io.printf_s("}");
+        $ empty
+    }
+    .lsquare => {
+        discard Cstd::Io.printf_s("[");
+        $ empty
+    }
+    .rsquare => {
+        discard Cstd::Io.printf_s("]");
+        $ empty
+    }
+    .colon => {
+        discard Cstd::Io.printf_s(":");
+        $ empty
+    }
+    .comma => {
+        discard Cstd::Io.printf_s(".\n");
+        $ empty
+    }
+    .jtnull => {
+        discard Cstd::Io.printf_s("null");
+        $ empty
+    }
+    .jttrue => {
+        discard Cstd::Io.printf_s("true");
+        $ empty
+    }
+    .jtfalse => {
+        discard Cstd::Io.printf_s("false");
+        $ empty
+    }
+    .jtstring(s) | .number(s) => {
+        discard String.show(s);
+        $ empty
+    }
+    .eof => {
+        discard Cstd::Io.printf_s("eof");
+        $ empty
+    }
+}
 
 fn new(source: String.string) lexer {
     const char = String.get_opt(source, 0u64);
@@ -162,7 +209,7 @@ fn parse_until_whitespace(lexer: *lexer, fc: u8) String.string {
 }
 
 fn next_token(l: *lexer) Option.option(token) = switch ( (*l).char ) {
-    .none => { $ Option..some( .eof ) }
+    .none => { $ Option..none }
     .some(c) => {
         $ cases {
             of is_whitespace(c) => {
