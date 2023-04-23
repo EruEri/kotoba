@@ -1,0 +1,6 @@
+fn main(argc: s32, argv: **s8) s32 {
+
+    const s = sizeof(Lexer.lexer);
+    discard Cstd::Io.printf(@stringlptr("sizeof json = %lu\n"), s );
+    $ 0
+}

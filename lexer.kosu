@@ -1,0 +1,178 @@
+external isspace(c: s32) s32;
+
+struct lexer {
+    char: Option.option(u8),
+    chars: String.string,
+    index: u64,
+    line: u32,
+    column: u32
+}
+
+enum token {
+    lbrack,
+    rbrack,
+    lsquare,
+    rsquare,
+    colon,
+    comma,
+    jtnull,
+    jttrue,
+    jtfalse,
+    jtstring(String.string),
+    number(String.string),
+    eof
+} 
+
+fn new(source: String.string) lexer {
+    const char = String.get_opt(source, 0u64);
+    $ lexer {
+        char = char,
+        chars = source,
+        index = 0u64,
+        line = 1u32,
+        column = 1u32
+    }
+}
+
+fn abort<t>(code: s32) t {
+    const c = Sys.exit(code);
+    const null : *t = nullptr;
+    $ *null
+}
+
+fn is_whitespace(u: u8) bool = isspace(@tos32(u)) != 0
+
+fn char_at(l: *lexer, i: u64) Option.option(u8) {
+    $ (*l).chars |> String.get_opt(i)
+}
+
+fn current_char(l: *lexer) Option.option(u8) = (*l).char
+
+fn advance(l: *lexer) {
+    var dl = *l;
+    *l.index = dl.index + 1u64;
+    *l.column = dl.column + 1u32;
+    *l.char = Lexer.char_at(l, (*l).index);
+    $ empty
+}
+
+fn next_line(l: *lexer) {
+    var dl = *l;
+    *l.index = dl.index + 1u64;
+    *l.column = 1u32;
+    *l.line = dl.line + 1u32;
+    *l.char = Lexer.char_at(l, (*l).index);
+    $ empty
+}
+
+fn is_new_line(u: u8) bool = u == @tou8('\n');
+
+fn skip_whitespace(l: *lexer) =
+    switch ( current_char(l) ) {
+        .none => { $ empty }
+        .some(c) => {
+            $ cases {
+                of is_new_line(c) => { $ next_line(l) }
+                of is_whitespace(c) => { $ advance(l) }
+                else { $ empty }
+            }
+        }
+    }
+
+fn is_quote(c: u8) bool = c == @tou8('\"');
+
+fn parse_string(lexer: *lexer) Option.option(String.string) {
+    const content = String.new();
+    discard lexer |> advance();
+    var continue = true;
+    var eof_encontered = false;
+    discard while (continue) {
+        discard switch ( current_char(lexer) ) {
+            .none => { continue = false; eof_encontered = true; $ empty }
+            .some(c) => {
+                $ cases {
+                    of c == @tou8('\"') => {
+                        continue = false;
+                        $ empty
+                    }
+                    of c == @tou8('\\') => {
+                        discard String.push_u8(&content, c);
+                        discard lexer |> advance();
+                        $ switch ( current_char(lexer) ) {
+                            .none => { 
+                                continue = false;
+                                $ empty
+                            }
+                            .some(ic) => {
+                                $ String.push_u8(&content, c)
+                            } 
+                        }
+                    }
+                    else {
+                        $ String.push_u8(&content, c)
+                    }
+                }
+            }
+        };
+        discard advance( lexer );
+        $ empty
+    }; 
+    $ if (eof_encontered) {
+        $ Option..none
+    } else {
+        $ Option..some(content)
+    }
+}
+
+// fc: first-char
+fn parse_until_whitespace(lexer: *lexer, fc: u8) String.string {
+    const s = String.new();
+    discard String.push_u8(&s, fc);
+    var continue = true;
+    discard while(continue) {
+        discard advance( lexer );
+        discard switch ( current_char(lexer) ) {
+            .none => { continue = false; $ empty }
+            .some(c) => {
+                $ if (is_whitespace(c)) { continue = false; $ empty }
+                else {
+                    discard String.push_u8(&s, c);
+                    $ empty
+                }
+            } 
+        };
+        $ empty
+    };
+
+    
+    $ s
+
+}
+
+fn next_token(l: *lexer) Option.option(token) = switch ( (*l).char ) {
+    .none => { $ Option..some( .eof ) }
+    .some(c) => {
+        $ cases {
+            of is_whitespace(c) => {
+                discard skip_whitespace(l);
+                $ next_token(l)
+            }
+            of c == @tou8('{') => { $ Option..some(.lbrack) }
+            of c == @tou8('}') => { $ Option..some(.rbrack) }
+            of c == @tou8('[') => { $ Option..some(.lsquare) }
+            of c == @tou8(']') => { $ Option..some(.rsquare) }
+            of c == @tou8(',') => { $ Option..some(.comma) }
+            of c == @tou8(':') => { $ Option..some(.colon) }
+            of c == @tou8('\"') => { 
+            const parsed = parse_string(l);
+            $ switch (parsed) {
+                .none => { $ Option..none }
+                .some(s) => { $ Option..some(.jtstring(s)) }
+            }
+            }
+            else {
+                $ abort::<Option.option(token)>(1)
+            }
+        }
+    }
+}

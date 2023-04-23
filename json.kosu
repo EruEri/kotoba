@@ -1,0 +1,9 @@
+enum json {
+    null,
+    boolean(bool),
+    int(s64),
+    float(f64),
+    string(String.string),
+    array(Vector.vector(json)),
+    object(Vector.vector( (String.string, json) ))
+}

@@ -1,0 +1,8 @@
+struct word {
+    name: String.string,
+
+}
+
+struct meaning {
+    
+}
