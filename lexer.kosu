@@ -26,7 +26,7 @@ enum token {
 
 fn show_token(t: token) = switch (t) {
     .lbrack => { 
-        discard Cstd::Io.printf_s("{");
+        discard Sys.write(1, @stringlptr("{"), 1u64);
         $ empty
     }
     .rbrack => {
@@ -42,27 +42,29 @@ fn show_token(t: token) = switch (t) {
         $ empty
     }
     .colon => {
-        discard Cstd::Io.printf_s(":");
+        discard Sys.write(1, @stringlptr(":"), 1u64);        
         $ empty
     }
     .comma => {
-        discard Cstd::Io.printf_s(".\n");
+        discard Sys.write(1, @stringlptr(",\n"), 2u64);
         $ empty
     }
     .jtnull => {
-        discard Cstd::Io.printf_s("null");
+        discard Sys.write(1, @stringlptr("null"), 4u64);
         $ empty
     }
     .jttrue => {
-        discard Cstd::Io.printf_s("true");
+        discard Sys.write(1, @stringlptr("true"), 4u64);
         $ empty
     }
     .jtfalse => {
-        discard Cstd::Io.printf_s("false");
+        discard Sys.write(1, @stringlptr("false"), 5u64);
         $ empty
     }
     .jtstring(s) | .number(s) => {
+        discard Sys.write(1, @stringlptr("\""), 1u64);
         discard String.show(s);
+        discard Sys.write(1, @stringlptr("\""), 1u64);
         $ empty
     }
     .eof => {
@@ -133,8 +135,8 @@ fn skip_whitespace(l: *lexer) =
         .none => { $ empty }
         .some(c) => {
             $ cases {
-                of is_new_line(c) => { $ next_line(l) }
-                of is_whitespace(c) => { $ advance(l) }
+                of is_new_line(c) => { discard next_line(l); $ skip_whitespace(l) }
+                of is_whitespace(c) => { discard advance(l); $ skip_whitespace(l) }
                 else { $ empty }
             }
         }
@@ -144,10 +146,10 @@ fn skip_whitespace(l: *lexer) =
 
 fn parse_string(lexer: *lexer) Option.option(String.string) {
     const content = String.new();
-    discard lexer |> advance();
     var continue = true;
     var eof_encontered = false;
     discard while (continue) {
+        discard advance( lexer );
         discard switch ( current_char(lexer) ) {
             .none => { continue = false; eof_encontered = true; $ empty }
             .some(c) => {
@@ -165,7 +167,7 @@ fn parse_string(lexer: *lexer) Option.option(String.string) {
                                 $ empty
                             }
                             .some(ic) => {
-                                $ String.push_u8(&content, c)
+                                $ String.push_u8(&content, ic)
                             } 
                         }
                     }
@@ -175,7 +177,7 @@ fn parse_string(lexer: *lexer) Option.option(String.string) {
                 }
             }
         };
-        discard advance( lexer );
+        
         $ empty
     }; 
     $ if (eof_encontered) {
@@ -208,13 +210,13 @@ fn parse_until_whitespace(lexer: *lexer, fc: u8) String.string {
 
 }
 
-fn next_token(l: *lexer) Option.option(token) = switch ( (*l).char ) {
+fn next_token(lexer: *lexer) Option.option(token) = switch ( current_char(lexer) ) {
     .none => { $ Option..none }
     .some(c) => {
         $ cases {
             of is_whitespace(c) => {
-                discard skip_whitespace(l);
-                $ next_token(l)
+                discard skip_whitespace(lexer);
+                $ next_token(lexer)
             }
             of c == @tou8('{') => { $ Option..some(.lbrack) }
             of c == @tou8('}') => { $ Option..some(.rbrack) }
@@ -223,14 +225,14 @@ fn next_token(l: *lexer) Option.option(token) = switch ( (*l).char ) {
             of c == @tou8(',') => { $ Option..some(.comma) }
             of c == @tou8(':') => { $ Option..some(.colon) }
             of c == @tou8('\"') => { 
-                const parsed = parse_string(l);
+                const parsed = parse_string(lexer);
                 $ switch (parsed) {
                     .none => { $ Option..none }
                     .some(s) => { $ Option..some(.jtstring(s)) }
                 }
             }
             else {
-                const parsed = parse_until_whitespace(l, c);
+                const parsed = parse_until_whitespace(lexer, c);
                 $ cases {
                     of String.eq_stringl(parsed, "null") => {
                         $ Option..some(.jtnull)
