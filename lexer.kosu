@@ -1,4 +1,5 @@
 external isspace(c: s32) s32;
+external isnumber(c: s32) s32;
 
 struct lexer {
     char: Option.option(u8),
@@ -42,6 +43,19 @@ fn abort<t>(code: s32) t {
 
 fn is_whitespace(u: u8) bool = isspace(@tos32(u)) != 0
 
+fn is_number(u: u8) bool = isnumber(@tos32(u)) != 0
+
+fn is_new_line(u: u8) bool = u == @tou8('\n')
+
+fn is_quote(c: u8) bool = c == @tou8('\"')
+
+fn is_first_char_digit(s: String.string) bool = switch ( String.get_opt(s, 0u64) ) {
+    .none => { $ false }
+    .some(c) => {
+        $ is_number(c)
+    }
+}
+ 
 fn char_at(l: *lexer, i: u64) Option.option(u8) {
     $ (*l).chars |> String.get_opt(i)
 }
@@ -65,7 +79,7 @@ fn next_line(l: *lexer) {
     $ empty
 }
 
-fn is_new_line(u: u8) bool = u == @tou8('\n');
+
 
 fn skip_whitespace(l: *lexer) =
     switch ( current_char(l) ) {
@@ -79,7 +93,7 @@ fn skip_whitespace(l: *lexer) =
         }
     }
 
-fn is_quote(c: u8) bool = c == @tou8('\"');
+
 
 fn parse_string(lexer: *lexer) Option.option(String.string) {
     const content = String.new();
@@ -142,9 +156,7 @@ fn parse_until_whitespace(lexer: *lexer, fc: u8) String.string {
             } 
         };
         $ empty
-    };
-
-    
+    };    
     $ s
 
 }
@@ -164,14 +176,31 @@ fn next_token(l: *lexer) Option.option(token) = switch ( (*l).char ) {
             of c == @tou8(',') => { $ Option..some(.comma) }
             of c == @tou8(':') => { $ Option..some(.colon) }
             of c == @tou8('\"') => { 
-            const parsed = parse_string(l);
-            $ switch (parsed) {
-                .none => { $ Option..none }
-                .some(s) => { $ Option..some(.jtstring(s)) }
-            }
+                const parsed = parse_string(l);
+                $ switch (parsed) {
+                    .none => { $ Option..none }
+                    .some(s) => { $ Option..some(.jtstring(s)) }
+                }
             }
             else {
-                $ abort::<Option.option(token)>(1)
+                const parsed = parse_until_whitespace(l, c);
+                $ cases {
+                    of String.eq_stringl(parsed, "null") => {
+                        $ Option..some(.jtnull)
+                    }
+                    of String.eq_stringl(parsed, "true") => {
+                        $ Option..some(.jttrue)
+                    }
+                    of String.eq_stringl(parsed, "false") => {
+                        $ Option..some(.jtfalse)
+                    }
+                    of is_first_char_digit(parsed) => {
+                        $ Option..some(.number(parsed) )
+                    }
+                    else {
+                        $ Option..none
+                    }
+                }
             }
         }
     }
