@@ -1,0 +1,116 @@
+struct parser {
+	index: u64,
+	tokens: Vector.vector(Lexer.token)
+}
+
+fn new(content: String.string) parser {
+	const index = 0u64;
+	var tokens = Vector.new::<Lexer.token>();
+	var lexer = Lexer.new(content);
+	var continue = true;
+	discard while (continue) {
+        var token = Lexer.next_token(&lexer);
+        discard switch (token) {
+            .none => { continue = false; $ empty }
+            .some(t) => {
+                discard Vector.push(&tokens, t);
+                discard Lexer.advance( &lexer );
+                $ empty
+            }
+        };
+        $ empty
+    };
+    
+    $ parser {
+    	index = index,
+    	tokens = tokens
+    }
+}
+
+fn advance(parser: *parser) {
+	*parser.index = (*parser).index + 1u64;
+	$ empty
+}
+
+fn current_token(parser: parser) Option.option(Lexer.token) {
+	const index = parser.index;
+	$ if ( index >= Vector.count(parser.tokens) ) { $ Option..none }
+	else {
+		$ Option..some(Vector.get(parser.tokens, index) )
+	}
+}
+
+
+fn consume(parser: *parser) Option.option(Lexer.token) {
+	const ct = current_token(*parser);
+	discard if ( Option.is_some( ct )) {
+		discard advance(parser);
+		$ empty
+	} else { $ empty };
+	$ ct
+}
+
+fn peek(parser: *parser, n: u64) Option.option(Lexer.token) {
+	const index = (*parser).index + n;
+	$ if ( index >= Vector.count( (*parser).tokens) ) { $ Option..none }
+	else {
+		$ Option..some(Vector.get( (*parser).tokens, index) )
+	}
+}
+
+fn value_aux_token(parser: *parser, token: Lexer.token) Option.option(Json.json) =
+	switch (token) {
+		.eof | .rbrack | .rsquare | .colon | .comma => {
+            $ Option..none
+        }
+        .lbrack => {
+            // Todo
+            $ Option..none
+        }
+        .lsquare => {
+            // Todo
+            $ Option..none
+        }
+        .jtnull => {
+            // Todo
+            $ Option..some(Json..null)
+        }
+        .jttrue => {
+        	$ Option..some(Json..boolean(true))
+        }
+        .jtfalse => {
+        	$ Option..some(Json..boolean(true))
+        }
+        .jtstring(s) => {
+        	$ Option..some(Json..string(s))
+        }
+        .number(_) => {
+        	$ Lexer.abort::<Option.option(Json.json)>(1)
+        }
+	}
+
+fn value_aux(parser: *parser) Option.option(Json.json) = 
+    switch ( consume(parser) ) {
+    	.none => { $ Option..none }
+    	.some(token) => {
+    		$ value_aux_token(parser, token)
+    	}
+    }
+
+
+fn parse(parser: *parser) Option.option(Json.json) {
+    var continue = true;
+    var error = false;
+    var json = value_aux(parser);
+    var current = consume( parser );
+    $ switch ( current ){
+        .none => { $ Option..none }
+        .some(token) => {
+            $ if ( Lexer.is_eof(token) ) {
+                $ json 
+            } else {
+                $ Option..none
+            }
+        }
+    }
+}

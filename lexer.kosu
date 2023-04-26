@@ -254,3 +254,65 @@ fn next_token(lexer: *lexer) Option.option(token) = switch ( current_char(lexer)
         }
     }
 }
+fn is_eof(token: token) bool = switch (token) {
+    .eof => { $ true }
+    _ => { $ false }
+}
+
+// fn parse(lexer: *lexer) Option.option(Json.json) {
+//     var continue = true;
+//     var error = false;
+//     var json = parse_aux(lexer);
+//     var current = Lexer.next_token(lexer);
+//     $ switch ( current ){
+//         .none => { $ Option..none }
+//         .some(token) => {
+//             $ if ( is_eof(token) ) {
+//                 $ json 
+//             } else {
+//                 $ Option..none
+//             }
+//         }
+//     }
+// }
+// 
+// fn value_aux(lexer: *lexer, token: Option.option(token)) Option.option(Json.json) = 
+//     switch (token) {
+//         .eof | .rbrack | .rsquare | .colon | .comma => {
+//             $ Option..none
+//         }
+//         .lbrack => {
+//                         
+//         }
+//         .lsquare,
+//         .jtnull,
+//         .jttrue,
+//         .jtfalse,
+//         .jtstring(String.string),
+//         .number(String.string),
+//         
+//     }
+// 
+// fn value(lexer: *lexer) Option.option(Json.json) {
+//     const current = next_token( lexer );
+//     $ switch ( current ) {
+//         .none => { $ Option..none }
+//         .some(token) => {
+//             $ switch (token) {
+//                 .eof | .rbrack | .rsquare | .colon | .comma => {
+//                     $ Option..none
+//                 }
+//                 .lbrack => {
+//                         
+//                 }
+//                 .lsquare,
+//                 .jtnull,
+//                 .jttrue,
+//                 .jtfalse,
+//                 .jtstring(String.string),
+//                 .number(String.string),
+//                     
+//             }
+//         }
+//     }
+// }

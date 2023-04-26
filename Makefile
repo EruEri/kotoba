@@ -1,4 +1,4 @@
-KOSU_FILE= json.kosu main.kosu lexer.kosu
+KOSU_FILE= json.kosu main.kosu lexer.kosu parser.kosu
 
 .PHONY: kotoba clean
 
