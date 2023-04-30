@@ -27,49 +27,38 @@ enum token {
 fn show_token(t: token) = switch (t) {
     .lbrack => { 
         discard Sys.write(1, @stringlptr("{"), 1u64);
-        $ empty
     }
     .rbrack => {
-        discard Cstd::Io.printf_s("}");
-        $ empty
+        discard Sys.write(1, @stringlptr("}"), 1u64);
     }
     .lsquare => {
-        discard Cstd::Io.printf_s("[");
-        $ empty
+        discard Sys.write(1, @stringlptr("["), 1u64);
     }
     .rsquare => {
-        discard Cstd::Io.printf_s("]");
-        $ empty
+        discard Sys.write(1, @stringlptr("]"), 1u64);
     }
     .colon => {
         discard Sys.write(1, @stringlptr(":"), 1u64);        
-        $ empty
     }
     .comma => {
         discard Sys.write(1, @stringlptr(",\n"), 2u64);
-        $ empty
     }
     .jtnull => {
         discard Sys.write(1, @stringlptr("null"), 4u64);
-        $ empty
     }
     .jttrue => {
         discard Sys.write(1, @stringlptr("true"), 4u64);
-        $ empty
     }
     .jtfalse => {
         discard Sys.write(1, @stringlptr("false"), 5u64);
-        $ empty
     }
     .jtstring(s) | .number(s) => {
         discard Sys.write(1, @stringlptr("\""), 1u64);
         discard String.show(s);
         discard Sys.write(1, @stringlptr("\""), 1u64);
-        $ empty
     }
     .eof => {
         discard Cstd::Io.printf_s("eof");
-        $ empty
     }
 }
 
@@ -99,10 +88,8 @@ fn is_new_line(u: u8) bool = u == @tou8('\n')
 fn is_quote(c: u8) bool = c == @tou8('\"')
 
 fn is_first_char_digit(s: String.string) bool = switch ( String.get_opt(s, 0u64) ) {
-    .none => { $ false }
-    .some(c) => {
-        $ is_number(c)
-    }
+    .none => ( false )
+    .some(c) => ( is_number(c) )
 }
  
 fn char_at(l: *lexer, i: u64) Option.option(u8) {
@@ -116,7 +103,6 @@ fn advance(l: *lexer) {
     *l.index = dl.index + 1u64;
     *l.column = dl.column + 1u32;
     *l.char = Lexer.char_at(l, (*l).index);
-    $ empty
 }
 
 fn next_line(l: *lexer) {
@@ -125,19 +111,17 @@ fn next_line(l: *lexer) {
     *l.column = 1u32;
     *l.line = dl.line + 1u32;
     *l.char = Lexer.char_at(l, (*l).index);
-    $ empty
 }
 
 
 
 fn skip_whitespace(l: *lexer) =
     switch ( current_char(l) ) {
-        .none => { $ empty }
+        .none => { }
         .some(c) => {
             $ cases {
                 of is_new_line(c) => { discard next_line(l); $ skip_whitespace(l) }
                 of is_whitespace(c) => { discard advance(l); $ skip_whitespace(l) }
-                else { $ empty }
             }
         }
     }
@@ -151,12 +135,11 @@ fn parse_string(lexer: *lexer) Option.option(String.string) {
     discard while (continue) {
         discard advance( lexer );
         discard switch ( current_char(lexer) ) {
-            .none => { continue = false; eof_encontered = true; $ empty }
+            .none => { continue = false; eof_encontered = true; }
             .some(c) => {
                 $ cases {
                     of c == @tou8('\"') => {
                         continue = false;
-                        $ empty
                     }
                     of c == @tou8('\\') => {
                         discard String.push_u8(&content, c);
@@ -164,27 +147,21 @@ fn parse_string(lexer: *lexer) Option.option(String.string) {
                         $ switch ( current_char(lexer) ) {
                             .none => { 
                                 continue = false;
-                                $ empty
                             }
                             .some(ic) => {
-                                $ String.push_u8(&content, ic)
+                                discard String.push_u8(&content, ic);
                             } 
                         }
                     }
                     else {
-                        $ String.push_u8(&content, c)
+                        discard String.push_u8(&content, c);
                     }
                 }
             }
         };
-        
-        $ empty
     }; 
-    $ if (eof_encontered) {
-        $ Option..none
-    } else {
-        $ Option..some(content)
-    }
+    $ if (eof_encontered) ( Option..none )
+    else ( Option..some(content) )
 }
 
 // fc: first-char
@@ -195,23 +172,21 @@ fn parse_until_whitespace(lexer: *lexer, fc: u8) String.string {
     discard while(continue) {
         discard advance( lexer );
         discard switch ( current_char(lexer) ) {
-            .none => { continue = false; $ empty }
+            .none => { continue = false; }
             .some(c) => {
-                $ if (is_whitespace(c)) { continue = false; $ empty }
+                $ if (is_whitespace(c)) { continue = false;  }
                 else {
                     discard String.push_u8(&s, c);
-                    $ empty
                 }
             } 
         };
-        $ empty
     };    
     $ s
 
 }
 
 fn next_token(lexer: *lexer) Option.option(token) = switch ( current_char(lexer) ) {
-    .none => { $ Option..none }
+    .none => ( Option..none )
     .some(c) => {
         $ cases {
             of is_whitespace(c) => {
@@ -227,8 +202,8 @@ fn next_token(lexer: *lexer) Option.option(token) = switch ( current_char(lexer)
             of c == @tou8('\"') => { 
                 const parsed = parse_string(lexer);
                 $ switch (parsed) {
-                    .none => { $ Option..none }
-                    .some(s) => { $ Option..some(.jtstring(s)) }
+                    .none => ( Option..none )
+                    .some(s) => ( Option..some(.jtstring(s)) )
                 }
             }
             else {
@@ -254,65 +229,8 @@ fn next_token(lexer: *lexer) Option.option(token) = switch ( current_char(lexer)
         }
     }
 }
+
 fn is_eof(token: token) bool = switch (token) {
     .eof => { $ true }
     _ => { $ false }
 }
-
-// fn parse(lexer: *lexer) Option.option(Json.json) {
-//     var continue = true;
-//     var error = false;
-//     var json = parse_aux(lexer);
-//     var current = Lexer.next_token(lexer);
-//     $ switch ( current ){
-//         .none => { $ Option..none }
-//         .some(token) => {
-//             $ if ( is_eof(token) ) {
-//                 $ json 
-//             } else {
-//                 $ Option..none
-//             }
-//         }
-//     }
-// }
-// 
-// fn value_aux(lexer: *lexer, token: Option.option(token)) Option.option(Json.json) = 
-//     switch (token) {
-//         .eof | .rbrack | .rsquare | .colon | .comma => {
-//             $ Option..none
-//         }
-//         .lbrack => {
-//                         
-//         }
-//         .lsquare,
-//         .jtnull,
-//         .jttrue,
-//         .jtfalse,
-//         .jtstring(String.string),
-//         .number(String.string),
-//         
-//     }
-// 
-// fn value(lexer: *lexer) Option.option(Json.json) {
-//     const current = next_token( lexer );
-//     $ switch ( current ) {
-//         .none => { $ Option..none }
-//         .some(token) => {
-//             $ switch (token) {
-//                 .eof | .rbrack | .rsquare | .colon | .comma => {
-//                     $ Option..none
-//                 }
-//                 .lbrack => {
-//                         
-//                 }
-//                 .lsquare,
-//                 .jtnull,
-//                 .jttrue,
-//                 .jtfalse,
-//                 .jtstring(String.string),
-//                 .number(String.string),
-//                     
-//             }
-//         }
-//     }
-// }

@@ -1,0 +1,33 @@
+struct file {
+	fd: s32
+}
+
+fn close(file: file) { 
+	discard Sys.close(file.fd);
+	$ empty
+}
+
+fn writel(file: file, content: stringl) {
+	const str_ptr = @stringlptr(content);
+	const strlen = Cstd::Str.strlen(str_ptr);
+	discard Sys.write(file.fd, str_ptr, @tou64(strlen));
+	$ empty
+}
+
+fn read_all(file: file) String.string {
+	const s = String.new();
+	var continue = true;
+	discard while ( continue ) {
+		const c = 0u8;
+		var read = Sys.read(file.fd, &c, sizeof(char) );
+		discard if ( read > 0s64 ) {
+			discard String.push_u8(&s, c);
+			$ empty
+		} else {
+			continue = false;
+			$ empty
+		};
+		$ empty
+	};
+	$ s
+}

@@ -9,14 +9,12 @@ fn main(argc: s32, argv: **s8) s32 {
         // discard Cstd::Io.printf_s("loop\n");
         var token = Lexer.next_token(&lexer);
         discard switch (token) {
-            .none => { continue = false; $ empty }
+            .none => { continue = false;  }
             .some(t) => {
                 discard Lexer.show_token(t);
                 discard Lexer.advance( &lexer );
-                $ empty
             }
         };
-        $ empty
     };
     discard Fs::File.close(file);
     $ 0

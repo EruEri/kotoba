@@ -11,14 +11,12 @@ fn new(content: String.string) parser {
 	discard while (continue) {
         var token = Lexer.next_token(&lexer);
         discard switch (token) {
-            .none => { continue = false; $ empty }
+            .none => { continue = false; }
             .some(t) => {
                 discard Vector.push(&tokens, t);
                 discard Lexer.advance( &lexer );
-                $ empty
             }
         };
-        $ empty
     };
     
     $ parser {
@@ -29,7 +27,6 @@ fn new(content: String.string) parser {
 
 fn advance(parser: *parser) {
 	*parser.index = (*parser).index + 1u64;
-	$ empty
 }
 
 fn current_token(parser: parser) Option.option(Lexer.token) {
@@ -57,6 +54,18 @@ fn peek(parser: *parser, n: u64) Option.option(Lexer.token) {
 		$ Option..some(Vector.get( (*parser).tokens, index) )
 	}
 }
+
+fn parse_object(parser: *parser) Option.option(Json.json) =
+	switch ( consume( parser ) ) {
+		.none => ( Option..none )
+		.some(token) => (
+			switch ( token ) {
+				.jtstring(s) => { $ Option..none }
+				_ => { $ Option..none }
+			}
+		)
+	}
+
 
 fn value_aux_token(parser: *parser, token: Lexer.token) Option.option(Json.json) =
 	switch (token) {

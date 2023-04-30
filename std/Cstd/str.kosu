@@ -1,0 +1,4 @@
+external strlen(str: *s8) s32;
+external strcmp(lhs: *s8, rhs: *s8) s32;
+external strcpy(dst: *s8, src: *s8) *s8;
+external memcmp(s1: anyptr, s2: anyptr, len: u64) s32;

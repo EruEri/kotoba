@@ -1,8 +1,11 @@
+struct translation {
+	output_lang: String.string,
+	translation: String.string   
+}
+
 struct word {
-    name: String.string,
-
+    input_lang: String.string,
+    word: String.string,
+    translations: Vector.vector(translation)
 }
 
-struct meaning {
-    
-}

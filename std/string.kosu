@@ -1,0 +1,73 @@
+struct string {
+    bytes: Vector.vector(u8)
+}
+
+
+fn new() string {
+    $ string {
+        bytes = Vector.new::<u8>()
+    }
+}
+
+fn push(s: *string, c: char) {
+    $ push_u8(s, @tou8(c))
+}
+
+fn push_u8(s: *string, c: u8) {
+    const ps = *s;
+    const by = ps.bytes;
+    discard Vector.push(&by, c);
+    *s.bytes = by;
+    $ empty
+}
+
+fn len(s: string) u64 {
+    $ s.bytes.count
+}
+
+fn get(s: string, i: u64) u8 {
+    $ s.bytes |> Vector.get(i)
+}
+
+fn get_opt(s: string, i: u64) Option.option(u8) = 
+    if ( i >= ( s |> len() ) ) { $ Option..none }
+    else { $ Option..some( s |> get(i) ) }
+
+fn from_stringl(str: stringl) string {
+    var string = String.new();
+    var c_str = @stringlptr(str);
+    var current_char = *c_str;
+    discard while (current_char != 0s8) {
+        discard push_u8(&string, @tou8(current_char));
+        c_str = c_str + 1;
+        current_char = *c_str;
+        $ empty
+    };
+    $ string
+}
+
+fn min_u64(lhs: u64, rhs: u64) u64 =
+    if (lhs < rhs) { $ lhs }
+    else { $ rhs }
+
+
+fn compare_stringl(s: string, rhs: stringl) order {
+    const prhs = @stringlptr(rhs);
+    const min_len = min_u64( len(s), @tou64(Cstd::Str.strlen(prhs)) );
+    const cmp = Cstd::Str.memcmp(s.bytes.ptr, prhs, min_len);
+    $ cases {
+        of cmp < 0 => { $ lt }
+        of cmp == 0 => { $ eq }
+        else { $ gt }
+    }
+}
+
+fn eq_stringl(s: string, rhs: stringl) bool = compare_stringl(s, rhs) == eq
+
+
+fn is_empty(str: string) bool = str.bytes.count == 0u64
+
+fn show(s: string) {
+    discard Sys.write(1, s.bytes.ptr, s.bytes.count);
+    $ empty
+}
